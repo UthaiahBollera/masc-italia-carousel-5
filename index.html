@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Page 3D Image Carousel</title>
+    <style>
+        /* --- Basic Setup --- */
+        :root {
+            --item-width: 320px;
+            --item-height: 350px;
+            --carousel-color: #18202f;
+            --accent-color: #e22f2f;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--carousel-color);
+            overflow-x: hidden;
+            width: 100vw;
+        }
+
+        /* --- Carousel Container --- */
+        .carousel-wrapper {
+            width: 100%;
+            height: 100vh; /* Takes full viewport height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .carousel-container {
+            width: 100%;
+            height: var(--item-height);
+            perspective: 2000px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .carousel {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        /* --- Carousel Items --- */
+        .carousel-item {
+            position: absolute;
+            width: var(--item-width);
+            height: var(--item-height);
+            left: 50%;
+            top: 50%;
+            transform-origin: center;
+            transform: translate(-50%, -50%);
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+            opacity: 0.7;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            filter: saturate(20%);
+        }
+        
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        
+        /* --- Reflection Effect --- */
+        .carousel-item::after {
+            content: '';
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(24, 32, 47, 0) 0%, rgba(24, 32, 47, 0.3) 50%, rgba(24, 32, 47, 0.8) 100%);
+            transform: scaleY(-1);
+            z-index: -1;
+        }
+        
+        /* --- Active Item Styling --- */
+        .carousel-item.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.15);
+            z-index: 10;
+            border-color: var(--accent-color);
+            filter: saturate(100%);
+        }
+
+        /* --- Navigation Buttons --- */
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 20;
+            transition: background-color 0.3s, transform 0.3s;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav-button:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .nav-button.prev { left: 10%; }
+        .nav-button.next { right: 10%; }
+        .nav-button svg { width: 24px; height: 24px; }
+
+        /* --- Pagination Dots --- */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .dot.active {
+            background-color: var(--accent-color);
+            transform: scale(1.2);
+        }
+        
+        /* --- Center Item Content: Title and Button --- */
+        .item-content-wrapper {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.5s 0.3s;
+            text-align: center;
+            width: 80%;
+        }
+
+        .carousel-item.active .item-content-wrapper { opacity: 1; }
+
+        .item-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .center-content button {
+            background: rgba(226, 47, 47, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(10px);
+            margin: 0 auto;
+        }
+        
+        .center-content button:hover {
+            background: var(--accent-color);
+            transform: scale(1.05) translateY(10px);
+        }
+
+        .carousel-item.active:hover .item-title { 
+            opacity: 0; 
+            pointer-events: none; /* Fix: Makes the invisible title non-interactive */
+        }
+        .carousel-item.active:hover .center-content button {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Details Section --- */
+        .details-section {
+            width: 100%;
+            min-height: 100vh;
+            background-color: #121824; /* Slightly darker than carousel bg */
+            color: white;
+            padding: 80px 10%;
+            box-sizing: border-box;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(50px);
+            transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0.6s;
+            position: relative;
+        }
+        .details-section.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0s;
+        }
+
+        .details-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+            align-items: center;
+        }
+        
+        .details-image img {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .details-text h2 {
+            font-size: 2.5rem;
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+        
+        .details-text p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
+
+        .close-details {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .close-details:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .close-details svg { width: 40px; height: 40px; }
+        
+        /* --- Responsive Design --- */
+        @media (max-width: 1024px) {
+            .nav-button.prev { left: 5%; }
+            .nav-button.next { right: 5%; }
+            .details-content { grid-template-columns: 1fr; gap: 40px; }
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --item-width: 240px;
+                --item-height: 260px;
+            }
+            .nav-button.prev { left: 2%; }
+            .nav-button.next { right: 2%; }
+            .details-text h2 { font-size: 2rem; }
+        }
+        
+        @media (max-width: 480px) {
+            :root {
+                --item-width: 180px;
+                --item-height: 200px;
+            }
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                padding: 10px;
+            }
+            .nav-button svg { width: 20px; height: 20px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="carousel-wrapper">
+        <div class="carousel-container">
+            <div class="carousel"></div>
+            <button class="nav-button prev">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+            </button>
+            <button class="nav-button next">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            </button>
+        </div>
+        <div class="pagination"></div>
+    </div>
+    
+    <section id="details-section" class="details-section">
+        <button class="close-details" aria-label="Close details">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <div class="details-content">
+            <div class="details-image">
+                <img src="" alt="">
+            </div>
+            <div class="details-text">
+                <h2></h2>
+                <p></p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const images = [
+                { src: 'https://plus.unsplash.com/premium_photo-1715639312136-56a01f236440?q=80&w=1714&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Charging Infrastructure', title: 'EV Charging Stations', description: 'The backbone of the electric revolution, modern charging stations provide rapid, reliable power. This network is expanding daily, making long-distance EV travel more convenient and accessible than ever before.' },
+                { src: 'https://images.unsplash.com/photo-1615901555268-839b7a1ede54?q=80&w=2062&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Electric Vehicle', title: 'The Future of Driving', description: 'Electric vehicles offer a silent, smooth, and powerful driving experience with zero tailpipe emissions. Combining cutting-edge technology with sleek design, they represent a major leap towards sustainable transportation.' },
+                { src: 'https://plus.unsplash.com/premium_photo-1661935334659-a4f95e515c3b?q=80&w=1722&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Electric Trucks', title: 'Sustainable Logistics', description: 'Heavy-duty electric trucks are set to transform the logistics industry. They provide immense torque for hauling heavy loads while drastically reducing noise pollution and carbon emissions in urban and highway environments.' },
+                { src: 'https://plus.unsplash.com/premium_photo-1733342421852-3bce709563e4?q=80&w=2064&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Hydrogen Trucks', title: 'Hydrogen Power', description: 'Hydrogen fuel cell trucks offer another path to zero-emission transport, with the key advantages of long range and fast refueling times, making them ideal for long-haul freight and demanding applications.' },
+                { src: 'https://images.unsplash.com/photo-1648594756894-151b3eb89400?q=80&w=1006&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Super Car 1', title: 'Sleek Supercar', description: 'A masterpiece of automotive engineering, this supercar combines breathtaking aesthetics with mind-bending performance. Its aerodynamic lines are sculpted for speed and downforce, ensuring an unmatched presence on the road.' },
+                { src: 'https://plus.unsplash.com/premium_photo-1677993185892-f7823f314c4c?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Super Car 2', title: 'Luxury Performance', description: 'Experience the pinnacle of luxury and performance. This vehicle marries a handcrafted, opulent interior with a ferocious engine, delivering a driving experience that is both exhilarating and supremely comfortable.' },
+                { src: 'https://images.unsplash.com/photo-1592198084033-aade902d1aae?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Super Car 3', title: 'Redefined Speed', description: 'Pushing the boundaries of what is possible, this hypercar utilizes hybrid technology to achieve astonishing acceleration and top speeds. It is a testament to the relentless pursuit of automotive perfection.' },
+                { src: 'https://images.unsplash.com/photo-1596731498067-99aeb581d3d7?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', alt: 'Car Charging', title: 'Powering Up', description: 'Convenient and increasingly fast, charging an electric vehicle is becoming as simple as plugging in your phone. Home and public chargers ensure that your car is always ready for your next journey.' }
+            ];
+            const AUTOPLAY_INTERVAL = 4000;
+
+            const carouselWrapper = document.querySelector('.carousel-wrapper');
+            const carousel = document.querySelector('.carousel');
+            const pagination = document.querySelector('.pagination');
+            const prevButton = document.querySelector('.nav-button.prev');
+            const nextButton = document.querySelector('.nav-button.next');
+            const detailsSection = document.getElementById('details-section');
+            const closeDetailsButton = document.querySelector('.close-details');
+            const detailsImage = detailsSection.querySelector('.details-image img');
+            const detailsTitle = detailsSection.querySelector('.details-text h2');
+            const detailsDescription = detailsSection.querySelector('.details-text p');
+
+            let currentIndex = 0;
+            let itemCount = images.length;
+            let autoplayTimer;
+
+            function createCarouselItems() {
+                carousel.innerHTML = '';
+                pagination.innerHTML = '';
+                
+                images.forEach((image, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('carousel-item');
+                    item.dataset.index = index;
+                    item.innerHTML = `
+                        <img src="${image.src}" alt="${image.alt}" onerror="this.onerror=null;this.src='https://placehold.co/400x600/cccccc/ffffff?text=Error';">
+                        <div class="item-content-wrapper">
+                            <div class="item-title">${image.title}</div>
+                            <div class="center-content">
+                                <button>View More</button>
+                            </div>
+                        </div>
+                    `;
+                    carousel.appendChild(item);
+
+                    const viewMoreButton = item.querySelector('button');
+                    viewMoreButton.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent carousel click event
+                        showDetails(index);
+                    });
+
+                    const dot = document.createElement('div');
+                    dot.classList.add('dot');
+                    dot.dataset.index = index;
+                    pagination.appendChild(dot);
+                });
+            }
+
+            function updateCarousel() {
+                itemCount = images.length;
+                const angle = 360 / itemCount;
+                const rotateY = -currentIndex * angle;
+                
+                carousel.style.transform = `rotateY(${rotateY}deg)`;
+
+                const items = document.querySelectorAll('.carousel-item');
+                const dots = document.querySelectorAll('.dot');
+                
+                const itemWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--item-width'));
+                const radius = (itemWidth / 2) / Math.tan(Math.PI / itemCount) + 40;
+
+                items.forEach((item, index) => {
+                    const itemAngle = index * angle;
+                    item.style.transform = `translate(-50%, -50%) rotateY(${itemAngle}deg) translateZ(${radius}px)`;
+                    item.classList.toggle('active', index === currentIndex);
+                });
+
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentIndex);
+                });
+            }
+            
+            function showDetails(index) {
+                const itemData = images[index];
+                detailsImage.src = itemData.src;
+                detailsImage.alt = itemData.alt;
+                detailsTitle.textContent = itemData.title;
+                detailsDescription.textContent = itemData.description;
+                detailsSection.classList.add('visible');
+                detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                stopAutoplay();
+            }
+
+            function hideDetails() {
+                detailsSection.classList.remove('visible');
+                carouselWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                startAutoplay();
+            }
+
+            function startAutoplay() {
+                stopAutoplay();
+                autoplayTimer = setInterval(() => { showNext(); }, AUTOPLAY_INTERVAL);
+            }
+
+            function stopAutoplay() {
+                clearInterval(autoplayTimer);
+            }
+
+            function showNext() {
+                currentIndex = (currentIndex + 1) % itemCount;
+                updateCarousel();
+            }
+
+            function showPrev() {
+                currentIndex = (currentIndex - 1 + itemCount) % itemCount;
+                updateCarousel();
+            }
+
+            function handleNavClick(e) {
+                if (e.target.closest('.next')) showNext();
+                else if (e.target.closest('.prev')) showPrev();
+                resetAutoplay();
+            }
+
+            function handleDotClick(e) {
+                if (e.target.classList.contains('dot')) {
+                    currentIndex = parseInt(e.target.dataset.index);
+                    updateCarousel();
+                    resetAutoplay();
+                }
+            }
+
+            function handleItemClick(e) {
+                const targetItem = e.target.closest('.carousel-item');
+                if (targetItem && !targetItem.classList.contains('active')) {
+                    currentIndex = parseInt(targetItem.dataset.index);
+                    updateCarousel();
+                    resetAutoplay();
+                }
+            }
+            
+            function resetAutoplay() {
+                stopAutoplay();
+                startAutoplay();
+            }
+
+            function init() {
+                createCarouselItems();
+                updateCarousel();
+                startAutoplay();
+
+                prevButton.addEventListener('click', handleNavClick);
+                nextButton.addEventListener('click', handleNavClick);
+                pagination.addEventListener('click', handleDotClick);
+                carousel.addEventListener('click', handleItemClick);
+                closeDetailsButton.addEventListener('click', hideDetails);
+                
+                carousel.addEventListener('mouseenter', stopAutoplay);
+                carousel.addEventListener('mouseleave', () => {
+                    // Only restart if details are not visible
+                    if (!detailsSection.classList.contains('visible')) {
+                        startAutoplay();
+                    }
+                });
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
+
+
